@@ -7,11 +7,11 @@ generatorOptions:
   disableNameSuffixHash: false
 
 helmGlobals:
-  chartHome: charts
+  chartHome: charts/0.29.1
 
 helmCharts:
 - name: vault
-  version: 0.29.1
+  # version: 0.29.1
   releaseName: vault
   # valuesFile: values/common/common.yaml
   additionalValuesFiles:
