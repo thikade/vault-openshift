@@ -1,10 +1,41 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-
-generatorOptions:
-  disableNameSuffixHash: false
-
+namespace: vault
 
 resources:
 - ../../base
+
+patches:
+  - target:
+      version: v1
+      group: apps
+      kind: StatefulSet
+      name: vault
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/lifecycle/postStart
+        value:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - |
+              if [ ! -f /vault/data/.init ]; then
+                sleep 10
+                vault operator init -key-shares=5 -key-threshold=3  > /vault/data/.cluster-keys.txt
+                touch vault/data/.init
+              fi
+              VAULT_UNSEAL_KEY_1=$(awk -F: '/Unseal Key 1/{print $2}'  /vault/data/.cluster-keys.txt  | tr -d " ")
+              VAULT_UNSEAL_KEY_2=$(awk -F: '/Unseal Key 2/{print $2}'  /vault/data/.cluster-keys.txt  | tr -d " ")
+              VAULT_UNSEAL_KEY_3=$(awk -F: '/Unseal Key 3/{print $2}'  /vault/data/.cluster-keys.txt  | tr -d " ")
+              sleep 2
+              test -n "$VAULT_UNSEAL_KEY_1" &&  vault operator unseal -address http://localhost:8200 $VAULT_UNSEAL_KEY_1
+              test -n "$VAULT_UNSEAL_KEY_2" &&  vault operator unseal -address http://localhost:8200 $VAULT_UNSEAL_KEY_2
+              test -n "$VAULT_UNSEAL_KEY_3" &&  vault operator unseal -address http://localhost:8200 $VAULT_UNSEAL_KEY_3
+              #
+              # optional: login with root token
+              # VAULT_ROOT_TOKEN=$(awk -F: '/Initial Root Token:/{print $2}'  /vault/data/.cluster-keys.txt  | tr -d " ")
+              # vault login -address http://localhost:8200 $VAULT_ROOT_TOKEN
+              #
+              echo "done."
