@@ -1,0 +1,39 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: vault-initializer
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      containers:
+      - image: image-registry.openshift-image-registry.svc:5000/vault/python:latest  # a python3 image with a few common libraries
+        imagePullPolicy: Always
+        name: python
+        command:
+        - /bin/bash
+        - -c
+        - |
+          WAIT=10
+          echo "Waiting ${WAIT}s for vault to start..."
+          for (( i=0; i <= $WAIT; i=i+2 )); do sleep 2; echo "."; done
+          python3 /scripts/vault-init.py
+        resources: {}
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
+        volumeMounts:
+        - mountPath: /scripts
+          name: init-script
+      dnsPolicy: ClusterFirst
+      restartPolicy: Never
+      serviceAccount: vault-initializer
+      serviceAccountName: vault-initializer
+      gracefulPeriodSeconds: 2
+      volumes:
+      - name: init-script
+        configMap:
+          name: init-script

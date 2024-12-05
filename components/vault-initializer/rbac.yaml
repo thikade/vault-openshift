@@ -1,0 +1,77 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: vault-initializer
+  namespace: vault
+
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: vault-initializer
+  namespace: vault
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  resourceNames:
+  - vault-unseal-keys
+  verbs:
+  - get
+  - list
+  - create
+  - update
+  - patch
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - ""
+  resources:
+  - pods/exec
+  resourceNames:
+  - vault-0
+  - vault-1
+  - vault-2
+  - vault-3
+  - vault-4
+  verbs:
+  - get
+  - create
+
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: vault-initializer
+  namespace: vault
+subjects:
+- kind: ServiceAccount
+  name: vault-initializer
+  namespace: vault
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: vault-initializer
+  namespace: vault
+# ---
+# apiVersion: rbac.authorization.k8s.io/v1
+# kind: RoleBinding
+# metadata:
+#   creationTimestamp: null
+#   name: system:openshift:scc:nonroot-v2
+#   namespace: vault
+# roleRef:
+#   apiGroup: rbac.authorization.k8s.io
+#   kind: ClusterRole
+#   name: system:openshift:scc:nonroot-v2
+# subjects:
+# - kind: ServiceAccount
+#   name: vault-initializer
+#   namespace: vault
