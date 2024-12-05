@@ -15,7 +15,7 @@ helmCharts:
 
 
 components:
-- ../../components/vault-initializer
+- ../components/vault-initializer
 
 resources: []
 #
